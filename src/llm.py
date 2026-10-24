@@ -54,3 +54,15 @@ class LLM:
         text = "\n\n".join(f"{m['role'].capitalize()}: {m['content']}" for m in messages)
         prompt = f"Current summary:\n{summary or '(empty)'}\n\nOlder messages:\n{text}"
         return self.chat(prompt, system=config.SUMMARY_PROMPT, temperature=0.2, max_tokens=400)
+
+    def text2sql(self, question: str, schema: str,
+            previous_sql: str | None = None, error: str | None = None) -> str:
+        """Returns a SQL string. Pass previous_sql and error to ask for a corrected query."""
+        prompt = f"Schema:\n{schema}\n\nQuestion:\n{question}"
+        if previous_sql and error:
+            prompt += (f"\n\nYour previous query failed.\nQuery:\n{previous_sql}\n"
+                        f"Error:\n{error}\nReturn a corrected query.")
+        raw = self.chat(prompt, system=config.TEXT2SQL_PROMPT, temperature=0, max_tokens=800)
+        m = re.search(r"```(?:sql)?\s*(.*?)```", raw, re.DOTALL | re.IGNORECASE)
+        return (m.group(1) if m else raw).strip()
+
