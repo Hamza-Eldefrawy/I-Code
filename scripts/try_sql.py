@@ -66,3 +66,4 @@ for bad in ["DELETE FROM employees",
     except Exception as e:
         print("blocked:", bad[:45], "->", type(e).__name__)
 print("rows still there:", db.execute('SELECT COUNT(*) FROM "employees"')["rows"])
+Path("data").mkdir(exist_ok=True); df.to_csv("data/employees.csv", index=False)

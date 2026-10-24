@@ -77,6 +77,12 @@ class SQLiteDB:
         columns = [d[0] for d in cur.description] if cur.description else []
         rows = cur.fetchmany(max_rows + 1)
         return {"columns": columns, "rows": rows[:max_rows], "truncated": len(rows) > max_rows}
+    
+    # --------- hint for voice model ----------
+    def columns(self) -> list[str]:
+        if not self.is_loaded():
+            return []
+        return [c[1] for c in self.conn.execute(f'PRAGMA table_info("{self.table}")')]
 
 
 def format_table(result: dict, limit: int = 20) -> str:

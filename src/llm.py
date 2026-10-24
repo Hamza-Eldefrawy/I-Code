@@ -4,11 +4,11 @@ from src import config
 
 
 class LLM:
-    def __init__(self, model: str = config.NVIDIA_MODEL):
+    def __init__(self, model: str = config.MODEL):
         self.model = model
         self.client = OpenAI(
-            api_key=config.NVIDIA_API_KEY,
-            base_url=config.NVIDIA_BASE_URL,
+            api_key=config.OPENROUTER_API_KEY,
+            base_url=config.OPENROUTER_BASE_URL,
             timeout=30.0, # try deepseek
         )
 
