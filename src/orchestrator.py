@@ -16,9 +16,9 @@ def extract_code(text: str) -> str | None:
     return "\n\n".join(blocks) if blocks else None
 
 class Orchestrator:
-  def __init__(self):
-    self.llm = LLM()
-    self.retriever = Retriever()
+  def __init__(self, llm: LLM, retriever: Retriever):
+    self.llm = llm
+    self.retriever = retriever
     self.memory = Memory(self.llm)
     self.awaiting_solution = False
     self.pending_request = None
