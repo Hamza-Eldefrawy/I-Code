@@ -7,8 +7,8 @@ class LLM:
     def __init__(self, model: str = config.MODEL):
         self.model = model
         self.client = OpenAI(
-            api_key=config.OPENROUTER_API_KEY,
-            base_url=config.OPENROUTER_BASE_URL,
+            api_key=config.API_KEY,
+            base_url=config.BASE_URL,
             timeout=30.0, # try deepseek
         )
 

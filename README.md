@@ -1,19 +1,47 @@
 # I-Code — AI Coding Mentor & Pair Programmer
 
-An intelligent coding assistant built with **Python**, **Streamlit**, **ChromaDB**, and **LLMs**.
+An intelligent coding assistant built with **Python**, **FastAPI**, **Streamlit**, **ChromaDB**, **SQLite**, **faster-whisper**, and **LLMs**.
 
-I-Code helps developers understand and write code. It classifies user queries to either explain code directly (without RAG overhead) or generate solutions using Retrieval-Augmented Generation (RAG) over a ChromaDB database of programming tasks. When relevant reference code is missing, it invites the user to provide a working solution and learns it dynamically for future requests. It also includes an isolated subprocess code execution tool to run generated Python code directly from the chat UI.
+I-Code helps developers understand, write, and execute code, as well as query data using natural language. It features a decoupled client-server architecture: a high-performance **FastAPI backend** manages LLM routing, RAG retrieval, speech transcription, database querying, and code execution, while a modern dark-themed **Streamlit frontend** provides a responsive pair-programming workspace.
 
 ---
 
 ## Key Features
 
-- **Smart Intent Routing**: Classifies inputs into `explain` (direct LLM analysis) or `generate` (retrieval-augmented generation).
-- **RAG with Relevance Guardrail**: Retrieves reference problems from ChromaDB and uses an LLM evaluator to check context relevance before generating code.
-- **Human Feedback Learning Loop**: If retrieved context is not relevant, the assistant asks for the correct solution and dynamically indexes it into ChromaDB.
-- **Conversation Memory**: Keeps recent dialogue turns verbatim and uses the LLM to compress older history into a running summary.
-- **Safe Subprocess Runner**: Executes Python code in a separate process (`python -I`) with stripped environment variables (protecting API keys), timeouts, and output truncation.
-- **Streamlit Web UI**: Chat interface with syntax highlighting, language/framework dropdowns, and an inline **▶ Run** button opening a side-by-side execution panel.
+- **Intent-Driven Routing**: Distinguishes code explanation from code generation, routing explanation requests directly to the LLM without retrieval overhead.
+- **RAG with Relevance Guardrail**: Retrieves reference problems from ChromaDB (HumanEval) and uses an LLM evaluator to verify context relevance before generating code.
+- **Text-to-SQL Data Assistant**: Upload any CSV file directly into an in-memory SQLite database, ask analytical questions using text or voice, review the generated SQL, and execute it to inspect tabular results.
+- **Voice Input & Whisper Transcription**: Speak programming prompts or data queries directly through microphone recording or audio uploads, transcribed locally using `faster-whisper`.
+- **Safe Subprocess Code Runner**: Executes Python snippets in an isolated subprocess (`python -I`) with stripped environment variables (protecting API keys), configurable timeouts, and output truncation.
+- **Dynamic Human Feedback Learning**: When the system lacks relevant knowledge for a request, it prompts the user for a reference implementation and indexes it dynamically into ChromaDB.
+- **Conversational Memory**: Maintains multi-turn context with recent verbatim exchanges and periodic LLM-driven background summarization.
+- **Client-Server Architecture**: Fully decoupled FastAPI REST backend and Streamlit UI connected via a session-aware `APIClient`.
+
+---
+
+## Visual Walkthrough & Demos
+
+![alt text](images/image.png)
+
+### 1. Explain Code
+Walk through existing logic, debug issues, and receive line-by-line code explanations directly from the LLM without RAG overhead.
+
+
+![alt text](images/image-1.png)
+
+---
+
+### 2. Generate Code & Inline Execution
+Retrieve reference problems from ChromaDB, verify relevance, generate clean Python implementations, and execute them with the inline **▶ Run Code** button.
+
+![alt text](images/image-2.png)
+
+---
+
+### 3. Text to SQL Workspace
+Upload a CSV dataset, speak or type analytical queries, inspect the generated SQL statement, and run it to display formatted data tables.
+
+![alt text](images/image-3.png)
 
 ---
 
@@ -21,27 +49,24 @@ I-Code helps developers understand and write code. It classifies user queries to
 
 ```mermaid
 flowchart TD
-    User["User Query"] --> Route{"Awaiting Solution?"}
+    User["User (Browser / Streamlit UI)"] <--> APIClient["APIClient (Session Header)"]
+    APIClient <--> FastAPI["FastAPI Backend (src/main.py)"]
 
-    Route -- "Yes (Code Block)" --> Feedback["Ingest User Solution into ChromaDB"]
-    Feedback --> Done["Confirm Learning & Reset State"]
+    subgraph Backend_Services ["Backend Services"]
+        FastAPI --> VoiceService["Voice Service (faster-whisper)"]
+        FastAPI --> SQLService["SQL Engine (SQLiteDB + text2sql)"]
+        FastAPI --> CodeRunner["Code Runner (subprocess python -I)"]
+        FastAPI --> Orchestrator["Orchestrator & Memory"]
+    end
 
-    Route -- "No" --> Classifier["LLM Intent Classifier"]
-
-    Classifier -- "explain" --> Explain["Direct LLM Explanation (No RAG)"]
-    Classifier -- "generate" --> Retriever["Retriever (ChromaDB Top-k)"]
-
-    Retriever --> Evaluator{"LLM Relevance Check"}
-    Evaluator -- "Relevant" --> Generator["LLM Code Generator with Context"]
-    Evaluator -- "Not Relevant" --> AskUser["Ask User for Solution (Set Awaiting Flag)"]
-
-    Explain --> Response["Chat Response"]
-    Generator --> Response
-    AskUser --> Response
-
-    Response --> RunCode["Inline ▶ Run Button"]
-    RunCode --> Subprocess["Isolated Subprocess (python -I)"]
-    Subprocess --> SidePanel["Execution Output Panel"]
+    subgraph LLM_RAG ["RAG & LLM Engine"]
+        Orchestrator --> Classifier["Intent Classifier"]
+        Classifier -- "explain" --> ExplainLLM["Direct LLM Explanation"]
+        Classifier -- "generate" --> ChromaDB[("ChromaDB Vector Store")]
+        ChromaDB --> Evaluator["LLM Relevance Evaluator"]
+        Evaluator -- "Relevant" --> Generator["LLM Code Generator"]
+        Evaluator -- "Not Relevant" --> Feedback["Human Feedback Learner"]
+    end
 ```
 
 ---
@@ -73,15 +98,19 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Add your API key to `.env`:
+Set your API credentials in `.env`:
 ```env
 # NVIDIA NIM (default in src/llm.py)
 NVIDIA_API_KEY=your_api_key_here
 NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_MODEL=meta/llama-3.1-8b-instruct
 
-# Or OpenRouter:
+# Backend API URL (for Streamlit frontend)
+API_BASE_URL=http://localhost:8000
+
+# Or OpenRouter / Gemini:
 # OPENROUTER_API_KEY=your_key_here
+# GEMINI_API_KEY=your_key_here
 ```
 
 ### 4. Download Data & Ingest Knowledge Base
@@ -95,10 +124,37 @@ python -m scripts.download_data
 python -m scripts.ingest
 ```
 
-### 5. Run the Application
+### 5. Launch the Application
+
+Start the **FastAPI backend** in your first terminal:
+```bash
+uvicorn src.main:app --reload --port 8000
+```
+
+Start the **Streamlit frontend** in a second terminal:
 ```bash
 streamlit run src/app.py
 ```
+
+---
+
+## Backend API Endpoints
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/sessions` | `POST` | Create a new isolated user session. |
+| `/sessions/{sid}` | `DELETE` | Drop and clean up an existing session. |
+| `/analyze` | `POST` | Classify user intent (`explain`, `generate`, `clarify`). |
+| `/explain` | `POST` | Generate code explanations directly via LLM. |
+| `/generate` | `POST` | RAG-augmented code generation with ChromaDB retrieval. |
+| `/feedback` | `POST` | Ingest user-provided solutions for unhandled problems. |
+| `/run` | `POST` | Execute Python code inside an isolated subprocess sandbox. |
+| `/sql/upload` | `POST` | Upload and sanitize a CSV file into SQLite. |
+| `/sql/query` | `POST` | Convert a natural-language question into an executable SQL query. |
+| `/sql/execute` | `POST` | Run an approved SQL query and return formatted table results. |
+| `/voice/transcribe` | `POST` | Upload an audio file and transcribe to text via Whisper. |
+| `/voice/start` | `POST` | Begin recording audio on the server microphone. |
+| `/voice/stop` | `POST` | Stop server recording and return the transcript. |
 
 ---
 
@@ -108,21 +164,28 @@ streamlit run src/app.py
 I-Code/
 ├── data/humaneval/         # HumanEval dataset (downloaded on setup)
 ├── chroma_db/              # Local ChromaDB vector storage (generated on ingest)
+├── docs/images/            # Screenshots and visual walkthrough assets
 ├── scripts/
 │   ├── download_data.py    # Downloads dataset from Hugging Face
 │   ├── ingest.py           # Ingests problems into ChromaDB
 │   ├── try_llm.py          # Quick LLM connectivity test
 │   ├── try_generate.py     # Tests RAG retrieval and generation
 │   ├── try_feedback.py     # Tests human feedback learning loop
+│   ├── try_sql.py          # Tests SQL conversion and SQLite execution
 │   └── try_code_runner.py  # Tests subprocess execution and safety limits
 ├── src/
-│   ├── app.py              # Streamlit chat interface and runner drawer
-│   ├── config.py           # Centralized paths, prompts, and settings
-│   ├── llm.py              # LLM client (completion, classification, evaluation)
+│   ├── app.py              # Streamlit frontend UI
+│   ├── api_client.py       # Session-aware HTTP client for FastAPI backend
+│   ├── main.py             # FastAPI backend REST API server
+│   ├── orchestrator.py     # Workflow coordinator (routing, RAG, feedback)
+│   ├── llm.py              # LLM client (completion, classification, text2sql)
 │   ├── retriever.py        # ChromaDB search and text chunking
+│   ├── sql.py              # In-memory SQLite engine and schema inspector
+│   ├── voice.py            # Local Whisper speech-to-text integration
 │   ├── memory.py           # Multi-turn memory with rolling LLM summarization
-│   ├── orchestrator.py     # Core workflow coordinator (routing, RAG, feedback)
-│   └── code_runner.py      # Subprocess execution sandbox with timeout
+│   ├── code_runner.py      # Subprocess execution sandbox with timeout
+│   ├── sessions.py         # Multi-session store for backend state
+│   └── config.py           # Centralized paths, prompts, and settings
 ├── requirements.txt        # Pinned core dependencies
 └── README.md
 ```
@@ -131,10 +194,11 @@ I-Code/
 
 ## Core Configuration
 
-Key settings in [`src/config.py`](file:///c:/Users/Hamza%20Eldafrawy/Desktop/Cellula_Intern/I-Code/src/config.py):
+Key settings in [`src/config.py`]
 
 | Setting | Default | Purpose |
 | :--- | :--- | :--- |
+| `API_BASE_URL` | `"http://localhost:8000"` | Base URL for FastAPI server |
 | `COLLECTION_NAME` | `"knowledge"` | ChromaDB vector collection name |
 | `TOP_K` | `3` | Number of reference examples retrieved for RAG |
 | `CHUNK_THRESHOLD` | `2500` | Character limit before a document is chunked |
@@ -142,38 +206,21 @@ Key settings in [`src/config.py`](file:///c:/Users/Hamza%20Eldafrawy/Desktop/Cel
 | `MAX_OUTPUT_CHARS`| `5000` | Max characters captured from script stdout/stderr |
 | `MEMORY_MAX_MESSAGES` | `10` | Number of recent messages kept verbatim |
 | `MEMORY_SUMMARY_BATCH` | `4` | Number of excess messages before running LLM summarization |
+| `WHISPER_MODEL` | `"small"` | Whisper model size (`tiny`, `base`, `small`, etc.) |
 
 ---
 
-## Next Steps
+## Next Steps & Roadmap
 
 ### Known Limitations
-- **Python-Only Knowledge Base & Runner**: The default knowledge base is HumanEval (Python algorithmic problems), and the code execution tool only runs Python scripts via `sys.executable`.
 - **Subprocess vs. Container Sandbox**: The execution tool runs in a subprocess (`python -I`) with stripped environment variables and a timeout, but does not provide complete OS kernel isolation (like Docker or gVisor).
-- **Unverified Feedback Ingestion**: User-provided code solutions are stored directly in ChromaDB without automated syntax verification or unit testing.
-- **Upstream Latency & Rate Limits**: Response speed and availability depend entirely on the external LLM provider.
+- **Single-Table SQLite**: The SQL workspace currently processes one loaded CSV table at a time.
+- **Unverified Feedback Ingestion**: User-provided code solutions are stored directly in ChromaDB without automated unit test verification.
+- **Upstream Latency & Rate Limits**: Response speed and token quotas depend on the external LLM provider.
 
 ### Planned Improvements
-- **Response Streaming**: Add streaming tokens in the Streamlit UI for lower perceived latency.
-- **Multi-Language Support**: Extend retrieval, code generation, and the execution runner to support JavaScript, TypeScript, Go, and Rust.
-- **Pre-Ingestion Testing**: Automatically run and validate user-submitted code in the runner before committing it to ChromaDB.
-- **Multi-File Context & File Upload**: Allow uploading repository files in Streamlit for whole-project debugging and explanations.
+- **Response Streaming**: Add streaming tokens in both FastAPI and Streamlit for lower perceived latency.
+- **Multi-Table Relational Schema**: Support uploading multiple CSVs with join inference and relational foreign key querying.
+- **Pre-Ingestion Test Validation**: Automatically test user-submitted code in the runner before committing it to ChromaDB.
 - **Containerized Sandbox**: Wrap the code execution tool in an isolated Docker container for strict filesystem and network isolation.
-
----
-
-## Next Steps
-
-### Known Limitations
-- **Python-Only Knowledge Base & Runner**: The default knowledge base is HumanEval (Python algorithmic problems), and the code execution tool only runs Python scripts via `sys.executable`.
-- **Subprocess vs. Container Sandbox**: The execution tool runs in a subprocess (`python -I`) with stripped environment variables and a timeout, but does not provide complete OS kernel isolation (like Docker or gVisor).
-- **Unverified Feedback Ingestion**: User-provided code solutions are stored directly in ChromaDB without automated syntax verification or unit testing.
-- **Upstream Latency & Rate Limits**: Response speed and availability depend entirely on the external LLM provider.
-
-### Planned Improvements
-- **Response Streaming**: Add streaming tokens in the Streamlit UI for lower perceived latency.
-- **Multi-Language Support**: Extend retrieval, code generation, and the execution runner to support JavaScript, TypeScript, Go, and Rust.
-- **Pre-Ingestion Testing**: Automatically run and validate user-submitted code in the runner before committing it to ChromaDB.
-- **Multi-File Context & File Upload**: Allow uploading repository files in Streamlit for whole-project debugging and explanations.
-- **Containerized Sandbox**: Wrap the code execution tool in an isolated Docker container for strict filesystem and network isolation.
-
+- **Multi-Language Runner**: Support running languages beyond Python (e.g., JavaScript, Go, Rust).

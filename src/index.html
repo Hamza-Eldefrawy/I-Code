@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><title>I-Code</title>
+<style>
+:root{--bg:#050806;--p:#0b140e;--b:#12221780;--bd:#193020;--t:#e2ece5;--m:#789280;--bl:#2ea043;--y:#4ade80;--r:12px}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--t);font:15px/1.6 system-ui,"Segoe UI",Roboto,sans-serif;display:flex}
+button,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:var(--p);border:1px solid var(--bd);border-radius:8px;padding:6px 12px}
+button:hover{border-color:var(--bl)}:focus-visible{outline:2px solid var(--y);outline-offset:2px}
+code,pre,.brand,.sql,h1{font-family:ui-monospace,"Cascadia Code",Consolas,Menlo,monospace}
+aside{width:232px;flex:none;background:var(--p);border-right:1px solid var(--bd);padding:18px 14px;display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;margin-bottom:16px}.brand svg{width:44px;height:44px}
+.nav{text-align:left;border:0;background:none;color:var(--m);padding:9px 12px}.nav.on{background:#132419;color:var(--t)}
+.sp{flex:1}main{flex:1;min-width:0;display:flex;flex-direction:column}
+#scroll{flex:1;overflow:auto;padding:28px 20px}.wrap{max-width:780px;margin:auto}
+.msg{display:flex;gap:12px;margin-bottom:22px}.msg.user{justify-content:flex-end}
+.av{width:32px;height:32px;flex:none}.pulse{animation:pl 1.2s infinite}
+.bub{min-width:0;flex:1}.user .bub{flex:none;max-width:85%;background:#132419;padding:8px 14px;border-radius:var(--r);white-space:pre-wrap}
+p{margin:0 0 .7em}h4{margin:.8em 0 .3em}ul,ol{margin:0 0 .7em;padding-left:1.4em}
+.cb{border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin:.7em 0}
+.cb .h{display:flex;align-items:center;gap:6px;padding:4px 8px 4px 14px;background:var(--p);font-size:12px;color:var(--m)}
+.cb .h span{flex:1}.cb .h button{padding:2px 10px;font-size:12px}
+pre{margin:0;padding:12px 14px;overflow:auto;background:#030604;font-size:13px;line-height:1.5}
+code{background:#132419;padding:1px 5px;border-radius:5px;font-size:.9em}pre code{background:none;padding:0}
+.k{color:#6ee7b7}.s{color:#a7f3d0}.c{color:#52705c}.n{color:var(--y)}
+.muted{color:var(--m)}.ok{color:#4ade80}.bad{color:#ff7b7b}.err{color:#ffa3a3}
+.empty{text-align:center;padding:7vh 0 0}.big{width:170px;height:170px}.empty h1{margin:.1em 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+.drop{display:block;border:2px dashed var(--bd);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;margin-bottom:18px}.drop:hover{border-color:var(--bl)}
+.card,.teach{border:1px solid var(--bd);background:var(--p);border-radius:var(--r);padding:14px;margin-bottom:16px}.teach{margin-top:10px}
+.sql{width:100%;background:#030604;border:1px solid var(--bd);border-radius:8px;padding:10px;font-size:13px;margin:6px 0;resize:vertical}
+.tw{overflow:auto;max-height:340px;margin-top:10px}table{border-collapse:collapse;font-size:13px;width:100%}
+th,td{border-bottom:1px solid var(--bd);padding:5px 10px;text-align:left;white-space:nowrap}th{position:sticky;top:0;background:var(--p)}
+#comp{padding:0 20px 18px}
+.box{max-width:780px;margin:auto;display:flex;align-items:flex-end;gap:8px;background:var(--p);border:1px solid var(--bd);border-radius:18px;padding:8px}
+.box:focus-within{border-color:var(--bl)}#in{flex:1;resize:none;border:0;background:none;outline:0;max-height:180px;padding:7px 8px}
+.ic{width:40px;height:40px;border-radius:50%;padding:0;display:grid;place-items:center}
+#send{background:var(--bl);border-color:var(--bl)}#mic.rec{background:#ef4444;border-color:#ef4444;animation:pl 1.1s infinite}
+@keyframes pl{50%{opacity:.55}}
+#run{width:0;overflow:hidden;background:var(--p);transition:width .25s}#run.open{width:min(460px,42vw);border-left:1px solid var(--bd)}
+#run .in{width:min(460px,42vw);height:100%;overflow:auto;padding:16px}.rh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#132419;border:1px solid var(--bd);padding:8px 16px;border-radius:10px;z-index:9}
+@media(max-width:800px){body{flex-direction:column}aside{width:auto;flex-direction:row;align-items:center;padding:8px 12px}.brand{margin:0}.sp{display:none}
+#run.open{position:fixed;inset:0;width:100vw;z-index:8}#run .in{width:100%}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="logo" viewBox="0 0 120 120" color="#2ea043">
+  <!-- Bitten Apple Leaf -->
+  <path d="M58 27 C56 14 68 5 80 6 C82 18 71 27 58 27 Z" fill="currentColor"/>
+  <!-- Full Apple Silhouette -->
+  <path d="M59 35 C50 35 43 29 35 29 C20 29 12 42 12 59 C12 80 28 103 42 103 C48 103 52 99 59 99 C66 99 70 103 76 103 C89 103 104 82 104 59 C104 42 96 29 81 29 C73 29 67 35 59 35 Z" fill="currentColor"/>
+  <!-- Explicit Bite Cutout on the Right Side -->
+  <circle cx="101" cy="57" r="19" fill="var(--bg)"/>
+  <!-- Snake Coiling Around Apple & Reaching Into the Right Bite Mark -->
+  <path d="M22 98 C50 116 98 96 76 74 C52 52 6 58 24 28 C38 8 96 14 106 42" fill="none" stroke="var(--bg)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M22 98 C50 116 98 96 76 74 C52 52 6 58 24 28 C38 8 96 14 106 42" fill="none" stroke="currentColor" stroke-width="8.5" stroke-linecap="round"/>
+  <!-- Snake Head Positioned Right at the Bite Mark Facing Inward -->
+  <ellipse cx="104" cy="46" rx="9" ry="6.5" transform="rotate(120 104 46)" fill="currentColor"/>
+  <circle cx="103" cy="49" r="1.6" fill="var(--bg)"/>
+  <!-- Forked Tongue Flicking Directly Into the Bite Cavity -->
+  <path d="M99 53 L94 58 M94 58 L89 57 M94 58 L93 63" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+</symbol></defs></svg>
+<aside><div class="brand"><svg><use href="#logo"/></svg>I-Code</div>
+<button class="nav on" data-mode="chat">Chat</button><button class="nav" data-mode="sql">Data (SQL)</button>
+<div class="sp"></div><button id="new">New session</button><div id="st" class="muted">● connecting</div></aside>
+<main><div id="scroll"><div class="wrap"><div id="chat"></div><div id="sqlv" hidden></div></div></div>
+<div id="comp"><div class="box">
+<button class="ic" id="mic" title="Voice input" aria-label="Voice input"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/></svg></button>
+<textarea id="in" rows="1" dir="auto" aria-label="Message"></textarea>
+<button class="ic" id="send" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-7 7 1.4 1.4L11 7.8V20h2V7.8l4.6 4.6L19 11z"/></svg></button></div></div></main>
+<section id="run"><div class="in"><div class="rh"><b>Run code</b><button id="rclose">Close</button></div><pre id="rcode"></pre><div id="rout"></div><p class="muted">Runs on the machine hosting the API.</p></div></section>
+<div id="toast" hidden></div>
+<script>
+const $=s=>document.querySelector(s),esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const API='http://127.0.0.1:8000'; // '' = same origin (page served by FastAPI). Otherwise e.g. 'http://127.0.0.1:8000' (needs CORS on the API)
+let sid=null,mode='chat',msgs=[],cards=[],csv=null,busy=false,rec=null,cid=0;const codes=new Map(),sc=$('#scroll'),inp=$('#in');
+const CHIPS=[['Write a function','Write a function that checks if any two numbers in a list are closer than a threshold'],
+['Explain some code',"Explain this code:\n```python\ndef f(n):\n    return 1 if n < 2 else n * f(n - 1)\n```"],['Try the learning loop','Build a Flask API with one endpoint']];
+const toast=m=>{const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,4500)};
+const setSt=ok=>{const s=$('#st');s.textContent=ok?'● connected':'● offline';s.style.color=ok?'#4ade80':'#ff7b7b'};
+async function api(method,path,{json,form}={}){
+  const h={};if(sid)h['x-session-id']=sid;let body;
+  if(json!==undefined){h['content-type']='application/json';body=JSON.stringify(json)}else if(form)body=form;
+  let r;try{r=await fetch(API+path,{method,headers:h,body})}catch{setSt(false);throw Error('Cannot reach the API. Is the server running?')}
+  setSt(true);const t=await r.text();let d=null;try{d=JSON.parse(t)}catch{}
+  if(!r.ok){const m=d&&d.detail!==undefined?d.detail:'HTTP '+r.status+': '+t.slice(0,150);throw Error(typeof m==='string'?m:JSON.stringify(m))}
+  return d}
+const start=async()=>{sid=(await api('POST','/sessions')).session_id};
+async function call(...a){try{return await api(...a)}catch(e){if(!/Unknown session/.test(e.message))throw e;
+  await start();csv=null;cards=[];renderSql();toast('The server restarted, so I started a new session.');return api(...a)}}
+const KW='def|class|return|if|elif|else|for|while|in|not|and|or|import|from|as|try|except|finally|with|lambda|yield|raise|pass|break|continue|None|True|False|const|let|var|function|async|await|SELECT|FROM|WHERE|GROUP|BY|ORDER|LIMIT|JOIN|ON|AS';
+function hl(c){const re=new RegExp('(#.*|//.*|--.*)|("(?:[^"\\\\\\n]|\\\\.)*"|\'(?:[^\'\\\\\\n]|\\\\.)*\')|(\\b\\d+(?:\\.\\d+)?\\b)|(\\b(?:'+KW+')\\b)','g');
+  let o='',i=0,m;while(m=re.exec(c)){o+=esc(c.slice(i,m.index))+`<span class="${m[1]?'c':m[2]?'s':m[3]?'n':'k'}">${esc(m[0])}</span>`;i=re.lastIndex}return o+esc(c.slice(i))}
+const inl=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+function blocks(t){let h='',l0=null;const cl=()=>{if(l0){h+=`</${l0}>`;l0=null}};
+  for(const l of t.split('\n')){let m;
+    if(m=l.match(/^\s*[-*]\s+(.*)/)){if(l0!=='ul'){cl();h+='<ul>';l0='ul'}h+=`<li>${inl(m[1])}</li>`}
+    else if(m=l.match(/^\s*\d+[.)]\s+(.*)/)){if(l0!=='ol'){cl();h+='<ol>';l0='ol'}h+=`<li>${inl(m[1])}</li>`}
+    else if(m=l.match(/^#{1,4}\s+(.*)/)){cl();h+=`<h4>${inl(m[1])}</h4>`}
+    else if(l.trim()){cl();h+=`<p dir="auto">${inl(l)}</p>`}else cl()}
+  cl();return h}
+function md(t){const p=t.split(/```([\w+#-]*)\n([\s\S]*?)```/g);let h='';
+  for(let i=0;i<p.length;i+=3){h+=blocks(p[i]);if(i+2<p.length){const id=++cid;codes.set(id,p[i+2].replace(/\n$/,''));
+    h+=`<div class="cb"><div class="h"><span>${esc(p[i+1]||'code')}</span><button data-a="copy" data-i="${id}">Copy</button><button data-a="run" data-i="${id}">▶ Run</button></div><pre><code>${hl(codes.get(id))}</code></pre></div>`}}
+  return h}
+const logo=c=>`<svg class="${c}"><use href="#logo"/></svg>`;
+const teachForm=i=>`<div class="teach"><p>I couldn't find this in my knowledge base. Paste the correct solution so I can learn it.</p><textarea id="t${i}" class="sql" rows="6" placeholder="Paste the code here"></textarea><button data-a="teach" data-i="${i}">Save solution</button></div>`;
+function render(){codes.clear();cid=0;const w=$('#chat');
+  if(!msgs.length){w.innerHTML=`<div class="empty">${logo('big')}<h1>I-Code</h1><p class="muted">Write, explain and run code. Ask questions about your CSV.</p><div class="chips">${CHIPS.map((c,i)=>`<button data-chip="${i}">${esc(c[0])}</button>`).join('')}</div></div>`;return}
+  w.innerHTML=msgs.map((m,i)=>m.role==='user'?`<div class="msg user"><div class="bub" dir="auto">${esc(m.text)}</div></div>`:
+    `<div class="msg">${logo('av')}<div class="bub">${md(m.text)}${m.teach&&!m.teach.done?teachForm(i):''}</div></div>`).join('')
+    +(busy?`<div class="msg">${logo('av pulse')}<div class="bub muted">I-Code is thinking…</div></div>`:'');
+  sc.scrollTop=sc.scrollHeight}
+async function send(text){if(busy||!text.trim())return;msgs.forEach(m=>m.teach&&(m.teach.done=true));msgs.push({role:'user',text});busy=true;render();
+  try{const intent=(await call('POST','/analyze',{json:{text}})).intent;
+    if(intent==='explain')msgs.push({role:'assistant',text:(await call('POST','/explain',{json:{text}})).answer});
+    else if(intent==='generate'){const r=await call('POST','/generate',{json:{text}});msgs.push({role:'assistant',text:r.answer,teach:r.not_found?{request:text}:null})}
+    else msgs.push({role:'assistant',text:'Do you want me to explain existing code, or write new code?'})}
+  catch(e){msgs.push({role:'assistant',text:'Something went wrong: '+e.message})}
+  busy=false;render()}
+async function teach(i){const m=msgs[i],v=$('#t'+i).value.replace(/```[\w+#-]*\n?/g,'').trim();if(!v)return toast('Paste a solution first.');
+  try{await call('POST','/feedback',{json:{request:m.teach.request,solution:v}});m.teach.done=true;
+    msgs.push({role:'assistant',text:"Thanks, I've learned this. Ask your question again and I'll use it."});render()}catch(e){toast(e.message)}}
+async function runCode(id){const code=codes.get(id);$('#run').classList.add('open');$('#rcode').innerHTML=hl(code);$('#rout').innerHTML='<p class="muted">Running…</p>';
+  try{const r=await call('POST','/run',{json:{text:code}}),good=r.returncode===0&&!r.timed_out,o=r.stdout.trim(),e=r.stderr.trim();
+    $('#rout').innerHTML=`<p><b class="${good?'ok':'bad'}">${r.timed_out?'Timed out':good?'Success':'Failed (exit '+r.returncode+')'}</b> <span class="muted">in ${r.duration}s</span></p>`
+      +(o?`<pre>${esc(r.stdout)}</pre>`:'')+(e?`<pre class="err">${esc(r.stderr)}</pre>`:'')+(o||e?'':'<p class="muted">No output.</p>')}
+  catch(e){$('#rout').innerHTML=`<p class="bad">${esc(e.message)}</p>`}}
+const table=r=>!r.rows.length?'<p class="muted">No rows returned.</p>':`<div class="tw"><table><tr>${r.columns.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>${r.rows.map(x=>`<tr>${x.map(v=>`<td>${v===null?'<i>NULL</i>':esc(String(v))}</td>`).join('')}</tr>`).join('')}</table></div>`+(r.truncated?'<p class="muted">Showing the first rows only.</p>':'');
+function renderSql(){$('#sqlv').innerHTML=`<label class="drop"><input type="file" accept=".csv" hidden id="csvf">${csv?`<b>${esc(csv.table)}</b> · ${csv.rows} rows<br><span class="muted">${csv.columns.map(esc).join(', ')}</span><br><span class="muted">Drop another CSV to replace it</span>`:'Drop a CSV here or click to choose one'}</label>`
+  +cards.map((c,i)=>`<div class="card"><p dir="auto"><b>${esc(c.q)}</b></p>`+(c.busy&&!c.sql?'<p class="muted">Writing the query…</p>':`<textarea class="sql" rows="3" data-i="${i}" dir="ltr">${esc(c.sql)}</textarea><button data-a="exec" data-i="${i}">Run SQL</button>`)+(c.err?`<p class="bad">${esc(c.err)}</p>`:'')+(c.res?table(c.res):'')+'</div>').join('')}
+const saveSql=()=>document.querySelectorAll('#sqlv textarea').forEach(t=>{const c=cards[t.dataset.i];if(c)c.sql=t.value});
+async function exec(c){c.err=null;try{c.res=(await call('POST','/sql/execute',{json:{sql:c.sql}})).raw}catch(e){c.res=null;c.err=e.message}}
+async function upload(f){if(!f||!/\.csv$/i.test(f.name))return toast('Choose a .csv file.');const fd=new FormData();fd.append('file',f,f.name);
+  try{csv=await call('POST','/sql/upload',{form:fd});cards=[];renderSql();setPh()}catch(e){toast(e.message)}}
+async function ask(q){if(!csv)return toast('Upload a CSV first.');saveSql();const c={q,sql:'',res:null,err:null,busy:true};cards.unshift(c);renderSql();
+  try{c.sql=(await call('POST','/sql/query',{json:{question:q}})).sql;await exec(c)}catch(e){c.err=e.message}c.busy=false;renderSql()}
+async function toWav(blob){const ac=new AudioContext(),buf=await ac.decodeAudioData(await blob.arrayBuffer());ac.close();
+  const oc=new OfflineAudioContext(1,Math.max(1,Math.ceil(buf.duration*16000)),16000),s=oc.createBufferSource();s.buffer=buf;s.connect(oc.destination);s.start();
+  const pcm=(await oc.startRendering()).getChannelData(0),v=new DataView(new ArrayBuffer(44+pcm.length*2)),w=(o,x)=>[...x].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
+  w(0,'RIFF');v.setUint32(4,36+pcm.length*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,16000,true);
+  v.setUint32(28,32000,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,pcm.length*2,true);
+  pcm.forEach((x,i)=>v.setInt16(44+i*2,Math.max(-1,Math.min(1,x))*32767,true));return new Blob([v],{type:'audio/wav'})}
+function setPh(){inp.placeholder=rec?'Listening… click the mic again to finish':mode==='chat'?'Ask I-Code to write or explain code…':csv?'Ask a question about your data…':'Upload a CSV first, then ask a question'}
+async function mic(){if(rec)return stopMic();if(!navigator.mediaDevices)return toast('The microphone needs http://localhost or https.');
+  try{const st=await navigator.mediaDevices.getUserMedia({audio:true}),mr=new MediaRecorder(st),ch=[];mr.ondataavailable=e=>ch.push(e.data);
+    rec={mr,st,ch,tm:setTimeout(stopMic,60000)};mr.start();$('#mic').classList.add('rec');setPh()}
+  catch{toast('Microphone blocked. Allow it in your browser settings.')}}
+function stopMic(){const r=rec;if(!r)return;rec=null;clearTimeout(r.tm);$('#mic').classList.remove('rec');inp.placeholder='Transcribing…';
+  r.mr.onstop=async()=>{r.st.getTracks().forEach(t=>t.stop());
+    try{const fd=new FormData();fd.append('file',await toWav(new Blob(r.ch,{type:r.mr.mimeType})),'voice.wav');
+      const t=(await call('POST','/voice/transcribe',{form:fd})).transcript;if(!t)toast("I didn't catch anything. Try again.");else{inp.value=(inp.value+' '+t).trim();grow()}}
+    catch(e){toast(e.message)}setPh();inp.focus()};r.mr.stop()}
+const grow=()=>{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,180)+'px'};
+function submit(){const v=inp.value.trim();if(!v)return;inp.value='';grow();mode==='chat'?send(v):ask(v)}
+inp.addEventListener('input',grow);inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();submit()}});
+$('#send').onclick=submit;$('#mic').onclick=mic;$('#rclose').onclick=()=>$('#run').classList.remove('open');
+document.addEventListener('keydown',e=>e.key==='Escape'&&$('#run').classList.remove('open'));
+$('#new').onclick=async()=>{if(sid)api('DELETE','/sessions/'+sid).catch(()=>{});sid=null;msgs=[];cards=[];csv=null;$('#run').classList.remove('open');
+  try{await start()}catch(e){toast(e.message)}render();renderSql();setPh()};
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n===b));$('#chat').hidden=mode!=='chat';$('#sqlv').hidden=mode!=='sql';setPh()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a],[data-chip]');if(!b)return;const a=b.dataset.a,i=+b.dataset.i;
+  if(b.dataset.chip!==undefined)send(CHIPS[b.dataset.chip][1]);
+  else if(a==='copy')navigator.clipboard.writeText(codes.get(i)).then(()=>toast('Copied'));
+  else if(a==='run')runCode(i);else if(a==='teach')teach(i);
+  else if(a==='exec'){saveSql();const c=cards[i];c.busy=true;exec(c).then(()=>{c.busy=false;renderSql()})}});
+document.addEventListener('change',e=>e.target.id==='csvf'&&upload(e.target.files[0]));
+document.addEventListener('dragover',e=>e.target.closest&&e.target.closest('.drop')&&e.preventDefault());
+document.addEventListener('drop',e=>{if(e.target.closest&&e.target.closest('.drop')){e.preventDefault();upload(e.dataTransfer.files[0])}});
+render();renderSql();setPh();start().catch(e=>toast(e.message));
+</script></body></html>

@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# ---- API ----
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+
 # ---- Paths ----
 ROOT = Path(__file__).resolve().parent.parent
 CHROMA_PATH = str(ROOT / "chroma_db")
@@ -22,7 +25,12 @@ GEMINI_MODEL = "gemini-3.8-flash"
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-MODEL = "openrouter/free"
+OPENROUTER_MODEL = "openrouter/free"
+
+API_KEY = NVIDIA_API_KEY
+BASE_URL = NVIDIA_BASE_URL
+MODEL = NVIDIA_MODEL
+
 TEMPERATURE = 0.2
 MAX_TOKENS = 1500
 

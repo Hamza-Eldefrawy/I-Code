@@ -13,6 +13,8 @@ from src.sessions import SessionStore
 from src.sql import SQLiteDB, format_table
 from src.voice import Voice
 
+from fastapi.middleware.cors import CORSMiddleware
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,7 +26,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="I-Code API", lifespan=lifespan)
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5500"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ---------- helpers ----------
 
@@ -106,7 +113,7 @@ async def sql_upload(file: UploadFile, orch: Orchestrator = Depends(get_session)
         tmp_path = Path(tmp.name)
     if not hasattr(orch, "db"):
         orch.db = SQLiteDB()
-    summary = orch.db.load_csv(str(tmp_path))
+    summary = orch.db.load_csv(str(tmp_path), table=Path(file.filename).stem)
     tmp_path.unlink(missing_ok=True)
     return summary
 
@@ -123,7 +130,10 @@ def sql_query(body: SqlQuestion, orch: Orchestrator = Depends(get_session)):
 def sql_execute(body: SqlRaw, orch: Orchestrator = Depends(get_session)):
     if not hasattr(orch, "db") or not orch.db.is_loaded():
         raise HTTPException(400, "No CSV loaded. POST /sql/upload first.")
-    result = orch.db.execute(body.sql)
+    try:
+        result = orch.db.execute(body.sql)
+    except Exception as e:
+        raise HTTPException(400, f"SQL error: {e}")
     return {"table": format_table(result), "raw": result}
 
 
@@ -153,17 +163,3 @@ def feedback(body: FeedbackIn, orch: Orchestrator = Depends(get_session)):
 @app.post("/run")
 def run(body: TextIn):
     return run_code(body.text)
-
-
-@app.post("/generate")
-def generate(body: TextIn, orch: Orchestrator = Depends(get_session)):
-    answer = orch.handle(body.text)
-    return {"answer": answer, "not_found": orch.awaiting_solution}
-
-
-@app.post("/feedback")
-def feedback(body: FeedbackIn, orch: Orchestrator = Depends(get_session)):
-    doc_id = orch.ingest_solution(body.request, body.solution)
-    orch.awaiting_solution = False
-    orch.pending_request = None
-    return {"stored": doc_id}
